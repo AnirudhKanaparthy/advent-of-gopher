@@ -1,8 +1,10 @@
 package main
 
-import "fmt"
-import "log"
-import "os"
+import (
+    "fmt"
+    "log"
+    "os"
+)
 
 const inputFilePath = "input.txt"
 

@@ -1,12 +1,14 @@
 package main
 
-import "cmp"
-import "fmt"
-import "log"
-import "os"
-import "slices"
-import "strconv"
-import "strings"
+import (
+    "cmp"
+    "fmt"
+    "log"
+    "os"
+    "slices"
+    "strconv"
+    "strings"
+)
 
 const inputFilePath string = "input.txt"
 
@@ -87,7 +89,6 @@ func ParseIntoBox(text string) (Box, error) {
     for i, dimRaw := range dimsRaw {
         dim, err := strconv.Atoi(dimRaw)
         if err != nil {
-            log.Fatal(text, " - ", dimsRaw, " - ", dimRaw)
             be := MakeBoxError("wrong box format")
             return Box{}, &be
         }
