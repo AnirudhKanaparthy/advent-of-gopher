@@ -1,40 +1,62 @@
-package main
+package y2015d4
 
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 	"strconv"
 )
 
 const bytesInMD5Hash int = 16
-const coinSecretKey string = "yzbqklnj"
-const miningProgressFrequency int = 100000
 
-type AdventCoin struct {
+type Solution struct{}
+
+func MakeSolution() *Solution {
+	return &Solution{}
+}
+
+func (sol Solution) ArgsString(int, []string) string {
+	return "<secret key>"
+}
+
+func (sol Solution) Solve(part int, args []string, w io.Writer) error {
+	if len(args) < 1 {
+		return errors.New("No secret key provided")
+	}
+
+	coinSecretKey := args[0]
+
+	coin := makeAdventCoin(coinSecretKey)
+	switch part {
+	case 1:
+		coin.mine(5)
+		coin.printDetails(w)
+	case 2:
+		coin.mine(6)
+		coin.printDetails(w)
+	default:
+		return fmt.Errorf("Expected part to be 1 or 2, got %v", part)
+	}
+
+	return nil
+}
+
+type adventCoin struct {
 	secretKey string
 	nounce    int
 }
 
-type AdventCoinError struct {
-	s string
+func makeAdventCoin(secretKey string) adventCoin {
+	return adventCoin{secretKey, 0}
 }
 
-func (ac *AdventCoinError) Error() string {
-	return ac.s
-}
-
-func MakeAdventCoin(secretKey string) AdventCoin {
-	return AdventCoin{secretKey, 0}
-}
-
-func (ac *AdventCoin) Mine(difficulty int) error {
+func (ac *adventCoin) mine(difficulty int) error {
 	// This is the classic proof of work introduced by HashCash, Bitcoin uses SHA256 instead of MD5 though
-
 	if difficulty > bytesInMD5Hash {
-		return &AdventCoinError{"difficulty is more than maximum number of bytes in MD5 hash"}
+		return errors.New("difficulty is more than maximum number of bytes in MD5 hash")
 	}
-	hashesChecked := 0
 	ac.nounce = 0
 	for {
 		digest := md5.Sum([]byte(ac.secretKey + strconv.Itoa(ac.nounce)))
@@ -49,31 +71,15 @@ func (ac *AdventCoin) Mine(difficulty int) error {
 		if mined {
 			return nil
 		}
-
-		if hashesChecked%miningProgressFrequency == 0 {
-			fmt.Printf("Number of hashes checked: %v, last hash: %v\n", hashesChecked, hexDigest)
-		}
-		hashesChecked += 1
 		ac.nounce += 1
 	}
 }
 
-func (coin *AdventCoin) PrintDetails() {
+func (coin *adventCoin) printDetails(w io.Writer) {
 	data := coin.secretKey + strconv.Itoa(coin.nounce)
 	digest := md5.Sum([]byte(data))
 
-	fmt.Printf("{secretKey: %v, nounce: %v}\n", coin.secretKey, strconv.Itoa(coin.nounce))
-	fmt.Printf("hash: %v\n", hex.EncodeToString(digest[:]))
-	fmt.Printf("nounce: %v\n", coin.nounce)
-}
-
-func main() {
-	coin := MakeAdventCoin(coinSecretKey)
-	coin.Mine(5)
-	coin.PrintDetails()
-
-	fmt.Printf("\n")
-
-	coin.Mine(6)
-	coin.PrintDetails()
+	fmt.Fprintf(w, "secretKey : %v\n", coin.secretKey)
+	fmt.Fprintf(w, "     hash : %v\n", hex.EncodeToString(digest[:]))
+	fmt.Fprintf(w, "   nounce : %v", coin.nounce)
 }

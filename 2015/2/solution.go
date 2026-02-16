@@ -1,125 +1,117 @@
-package main
+package y2015d2
 
 import (
-    "cmp"
-    "fmt"
-    "log"
-    "os"
-    "slices"
-    "strconv"
-    "strings"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"slices"
+	"strconv"
+	"strings"
 )
 
-const inputFilePath string = "input.txt"
+type Solution struct{}
 
-type Box struct {
-    l int
-    w int
-    h int
+func MakeSolution() *Solution {
+	return &Solution{}
 }
 
-type BoxError struct {
-    errorMessage string
+func (sol Solution) ArgsString(int, []string) string {
+	return "<filepath>"
 }
 
-func MakeBoxError(errMsg string) BoxError {
-    return BoxError{errMsg}
+func (sol Solution) Solve(part int, args []string, w io.Writer) error {
+	if len(args) < 1 {
+		return errors.New("No file path provided")
+	}
+
+	inputFilePath := args[0]
+
+	data, err := os.ReadFile(inputFilePath)
+	if err != nil {
+		return err
+	}
+	text := string(data)
+
+	totalRibbonNeeded := 0
+	totalWrapNeeded := 0
+	for line := range strings.SplitSeq(text, "\n") {
+		if len(line) == 0 {
+			continue
+		}
+
+		box, err := parseIntoBox(line)
+		if err != nil {
+			return err
+		}
+		totalWrapNeeded += box.giftWrapNeeded()
+		totalRibbonNeeded += box.ribbonNeeded()
+	}
+
+	switch part {
+	case 1:
+		fmt.Fprintf(w, "Total wrap needed: %v", totalWrapNeeded)
+	case 2:
+		fmt.Fprintf(w, "Total ribbon needed: %v", totalRibbonNeeded)
+	default:
+		return fmt.Errorf("Expected part to be 1 or 2, got %v", part)
+	}
+
+	return nil
 }
 
-func (be *BoxError) Error() string {
-    return be.errorMessage
+type box struct {
+	l int
+	w int
+	h int
 }
 
-func min[K cmp.Ordered](a K, b K) K {
-    if a < b {
-        return a;
-    } else {
-        return b;
-    }
+func (b *box) giftWrapNeeded() int {
+	p := b.l * b.w
+	q := b.w * b.h
+	r := b.h * b.l
+
+	s := min(min(p, q), r)
+
+	return 2*p + 2*q + 2*r + s
 }
 
-func max[K cmp.Ordered](a K, b K) K {
-    if a > b {
-        return a;
-    } else {
-        return b;
-    }
+func (b *box) ribbonNeededV1() int {
+	s := []int{b.l, b.h, b.w}
+	slices.Sort(s)
+	return 2*(s[0]+s[1]) + (b.l * b.h * b.w)
 }
 
-func (b *Box)GiftWrapNeeded() int {
-    p := b.l*b.w
-    q := b.w*b.h
-    r := b.h*b.l
+func (b *box) ribbonNeeded() int {
+	// A more fun approach
 
-    s := min(min(p, q), r)
+	p := min(b.l, b.h)
+	q := min(b.h, b.w)
+	r := min(b.w, b.l)
 
-    return 2*p + 2*q + 2*r + s
+	m := max(p, q)
+	n := max(q, r)
+	o := max(r, p)
+
+	t := (p + q + r + m + n + o) / 3
+	return 2*t + (b.l * b.w * b.h)
 }
 
-func (b *Box)RibbonNeededV1() int {
-    s := []int{b.l, b.h, b.w}
-    slices.Sort(s)
-    return 2*(s[0] + s[1]) + (b.l*b.h*b.w)
-}
+func parseIntoBox(text string) (box, error) {
+	if len(text) == 0 {
+		return box{}, errors.New("empty input")
+	}
 
-func (b *Box)RibbonNeeded() int {
-    // A more fun approach
+	dimsRaw := strings.Split(text, "x")
 
-    p := min(b.l, b.h)
-    q := min(b.h, b.w)
-    r := min(b.w, b.l)
+	dims := [3]int{0, 0, 0}
+	for i, dimRaw := range dimsRaw {
+		dim, err := strconv.Atoi(dimRaw)
+		if err != nil {
+			return box{}, errors.New("wrong box format")
+		}
+		dims[i] = dim
+	}
 
-    m := max(p, q)
-    n := max(q, r)
-    o := max(r, p)
-
-    t := (p + q + r + m + n + o) / 3
-    return 2*t + (b.l*b.w*b.h)
-}
-
-func ParseIntoBox(text string) (Box, error) {
-    if len(text) == 0 {
-        be := MakeBoxError("empty input")
-        return Box{}, &be
-    }
-
-    dimsRaw := strings.Split(text, "x")
-
-    dims := [3]int{0, 0, 0}
-    for i, dimRaw := range dimsRaw {
-        dim, err := strconv.Atoi(dimRaw)
-        if err != nil {
-            be := MakeBoxError("wrong box format")
-            return Box{}, &be
-        }
-        dims[i] = dim
-    }
-
-    return Box{dims[0], dims[1], dims[2]}, nil
-}
-
-func main() {
-    data, err := os.ReadFile(inputFilePath)
-    if err != nil {
-        log.Fatal("ERROR - Could not open file")
-    }
-
-    totalRibbonNeeded := 0
-    totalWrapNeeded := 0
-    text := string(data)
-    for _, line := range strings.Split(text, "\n") {
-        if len(line) == 0 {
-            continue
-        }
-
-        box, err := ParseIntoBox(line)
-        if err != nil {
-            log.Fatal("ERROR - ", err.Error())
-            continue
-        }
-        totalWrapNeeded += box.GiftWrapNeeded()
-        totalRibbonNeeded += box.RibbonNeeded()
-    }
-    fmt.Println(totalWrapNeeded)
-    fmt.Println(totalRibbonNeeded)
+	return box{dims[0], dims[1], dims[2]}, nil
 }
