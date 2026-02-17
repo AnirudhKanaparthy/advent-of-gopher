@@ -74,6 +74,8 @@ func (Solution) Solve(part int, args []string, w io.Writer) error {
 	return nil
 }
 
+// The rule is simple for these function. If it cannot parse it, it will leave the tokenizer alone.
+// If it can parse it, it will move the tokenizer forward
 func evalNumber(tokens *[]string, wires map[string]uint16) (uint16, error) {
 	valTxt := (*tokens)[0]
 	val, err := strconv.Atoi(valTxt)
@@ -146,7 +148,7 @@ func evalBinary(tokens *[]string, wires map[string]uint16) (uint16, error) {
 	return res, nil
 }
 
-func ParseExpression(tokens *[]string, wires map[string]uint16) (uint16, error) {
+func evalExpression(tokens *[]string, wires map[string]uint16) (uint16, error) {
 	t := *tokens
 
 	val, err := evalBinary(tokens, wires)
@@ -173,7 +175,7 @@ func ParseExpression(tokens *[]string, wires map[string]uint16) (uint16, error) 
 func evalStatement(tokens *[]string, wires map[string]uint16) error {
 	t := *tokens
 
-	val, err := ParseExpression(tokens, wires)
+	val, err := evalExpression(tokens, wires)
 	if err != nil {
 		*tokens = t
 		return err
