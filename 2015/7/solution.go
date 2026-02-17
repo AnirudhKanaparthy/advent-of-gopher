@@ -37,7 +37,7 @@ func (Solution) Solve(part int, args []string, w io.Writer) error {
 	wires := make(map[string]uint16)
 
 	for len(expressions) != 0 {
-		EvalLoop(expressions, wires)
+		evalLoop(expressions, wires)
 	}
 
 	valA, ok := wires["a"]
@@ -59,7 +59,7 @@ func (Solution) Solve(part int, args []string, w io.Writer) error {
 		}
 
 		for len(expressions) != 0 {
-			EvalLoop(expressions, wires)
+			evalLoop(expressions, wires)
 		}
 		valA, ok = wires["a"]
 		if !ok {
@@ -74,7 +74,7 @@ func (Solution) Solve(part int, args []string, w io.Writer) error {
 	return nil
 }
 
-func EvalNumber(tokens *[]string, wires map[string]uint16) (uint16, error) {
+func evalNumber(tokens *[]string, wires map[string]uint16) (uint16, error) {
 	valTxt := (*tokens)[0]
 	val, err := strconv.Atoi(valTxt)
 	if err != nil {
@@ -90,7 +90,7 @@ func EvalNumber(tokens *[]string, wires map[string]uint16) (uint16, error) {
 	return uint16(val), nil
 }
 
-func EvalUnary(tokens *[]string, wires map[string]uint16) (uint16, error) {
+func evalUnary(tokens *[]string, wires map[string]uint16) (uint16, error) {
 	if len(*tokens) < 2 {
 		return 0, errors.New("Invalid expression")
 	}
@@ -100,7 +100,7 @@ func EvalUnary(tokens *[]string, wires map[string]uint16) (uint16, error) {
 	t := *tokens
 	*tokens = (*tokens)[1:]
 
-	val, err := EvalNumber(tokens, wires)
+	val, err := evalNumber(tokens, wires)
 	if err != nil {
 		*tokens = t
 		return val, err
@@ -109,11 +109,11 @@ func EvalUnary(tokens *[]string, wires map[string]uint16) (uint16, error) {
 	return ^val, nil
 }
 
-func EvalBinary(tokens *[]string, wires map[string]uint16) (uint16, error) {
+func evalBinary(tokens *[]string, wires map[string]uint16) (uint16, error) {
 	if len(*tokens) < 3 {
 		return 0, errors.New("Invalid expression")
 	}
-	valA, err := EvalNumber(tokens, wires)
+	valA, err := evalNumber(tokens, wires)
 	if err != nil {
 		return valA, err
 	}
@@ -122,7 +122,7 @@ func EvalBinary(tokens *[]string, wires map[string]uint16) (uint16, error) {
 	op := (*tokens)[0]
 	*tokens = (*tokens)[1:]
 
-	valB, err := EvalNumber(tokens, wires)
+	valB, err := evalNumber(tokens, wires)
 	if err != nil {
 		*tokens = t
 		return valB, err
@@ -149,19 +149,19 @@ func EvalBinary(tokens *[]string, wires map[string]uint16) (uint16, error) {
 func ParseExpression(tokens *[]string, wires map[string]uint16) (uint16, error) {
 	t := *tokens
 
-	val, err := EvalBinary(tokens, wires)
+	val, err := evalBinary(tokens, wires)
 	if err == nil {
 		return val, err
 	}
 	*tokens = t
 
-	val, err = EvalUnary(tokens, wires)
+	val, err = evalUnary(tokens, wires)
 	if err == nil {
 		return val, err
 	}
 	*tokens = t
 
-	val, err = EvalNumber(tokens, wires)
+	val, err = evalNumber(tokens, wires)
 	if err == nil {
 		return val, err
 	}
@@ -170,7 +170,7 @@ func ParseExpression(tokens *[]string, wires map[string]uint16) (uint16, error) 
 	return val, errors.New("Invalid expression")
 }
 
-func EvalStatement(tokens *[]string, wires map[string]uint16) error {
+func evalStatement(tokens *[]string, wires map[string]uint16) error {
 	t := *tokens
 
 	val, err := ParseExpression(tokens, wires)
@@ -191,10 +191,10 @@ func EvalStatement(tokens *[]string, wires map[string]uint16) error {
 	return nil
 }
 
-func EvalLoop(expressions map[int][]string, wires map[string]uint16) {
+func evalLoop(expressions map[int][]string, wires map[string]uint16) {
 	toDelete := make([]int, 0)
 	for i, expression := range expressions {
-		if EvalStatement(&expression, wires) == nil {
+		if evalStatement(&expression, wires) == nil {
 			toDelete = append(toDelete, i)
 		}
 	}
